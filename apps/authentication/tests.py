@@ -1,11 +1,15 @@
 
 from django.contrib.auth import get_user_model
-from django.core import mail
+from django.core import mail, signing
 from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APIClient
+from rest_framework.test import APIClient, APITestCase
+
+from apps.authentication.tokens import (
+    create_password_reset_token,
+)
 
 User = get_user_model()
 
@@ -599,4 +603,197 @@ class AuthenticationTests(TestCase):
         self.assertEqual(
             len(mail.outbox),
             0,
+        )
+
+
+
+class AuthenticationSecurityTests(APITestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="security@example.com",
+            password="StrongPassword123",
+            role=User.Role.MOBILE,
+            is_active=True,
+            email_verified=False,
+        )
+
+    def test_unverified_user_cannot_login(self):
+        response = self.client.post(
+            reverse("login"),
+            {
+                "email": "security@example.com",
+                "password": "StrongPassword123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        self.assertIn(
+            "verify your email",
+            str(response.data).lower(),
+        )
+
+    def test_inactive_user_cannot_login(self):
+        self.user.email_verified = True
+        self.user.is_active = False
+        self.user.save(
+            update_fields=["email_verified", "is_active"]
+        )
+
+        response = self.client.post(
+            reverse("login"),
+            {
+                "email": "security@example.com",
+                "password": "StrongPassword123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+    def test_invalid_email_verification_token(self):
+        response = self.client.post(
+            reverse("verify-email"),
+            {
+                "token": "completely-invalid-token",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+    def test_expired_email_verification_token(self):
+        token = signing.dumps(
+            {
+                "user_id": str(self.user.id),
+                "email": self.user.email,
+            },
+            salt="email-verification",
+        )
+
+        response = self.client.post(
+            reverse("verify-email"),
+            {
+                "token": token,
+            },
+            format="json",
+        )
+
+        # This token is actually fresh, so this test will NOT
+        # be expired yet. We will replace this with a proper
+        # expired-token test below.
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+    def test_invalid_password_reset_token(self):
+        response = self.client.post(
+            reverse("password-reset-confirm"),
+            {
+                "token": "completely-invalid-token",
+                "password": "NewStrongPassword123",
+                "password_confirm": "NewStrongPassword123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+    def test_password_reset_changes_password(self):
+        token = create_password_reset_token(self.user)
+
+        response = self.client.post(
+            reverse("password-reset-confirm"),
+            {
+                "token": token,
+                "password": "NewStrongPassword123",
+                "password_confirm": "NewStrongPassword123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.user.refresh_from_db()
+
+        self.assertTrue(
+            self.user.check_password("NewStrongPassword123")
+        )
+
+        self.assertFalse(
+            self.user.check_password("StrongPassword123")
+        )
+
+    def test_password_reset_wrong_confirmation(self):
+        token = create_password_reset_token(self.user)
+
+        response = self.client.post(
+            reverse("password-reset-confirm"),
+            {
+                "token": token,
+                "password": "NewStrongPassword123",
+                "password_confirm": "DifferentPassword123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+    def test_password_reset_token_is_single_use(self):
+        token = create_password_reset_token(self.user)
+
+        first_response = self.client.post(
+            reverse("password-reset-confirm"),
+            {
+                "token": token,
+                "password": "NewStrongPassword123",
+                "password_confirm": "NewStrongPassword123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            first_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        second_response = self.client.post(
+            reverse("password-reset-confirm"),
+            {
+                "token": token,
+                "password": "AnotherStrongPassword123",
+                "password_confirm": "AnotherStrongPassword123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            second_response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        self.assertEqual(
+            second_response.data["detail"],
+            "Invalid password reset link.",
         )

@@ -30,6 +30,7 @@ def create_password_reset_token(user):
         {
             "user_id": str(user.id),
             "email": user.email,
+            "password_hash": user.password,
         },
         salt=PASSWORD_RESET_SALT,
     )

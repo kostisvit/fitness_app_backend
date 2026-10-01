@@ -216,6 +216,12 @@ class PasswordResetConfirmView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        if data.get("password_hash") != user.password:
+            return Response(
+                {"detail": "Invalid password reset link."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if not user.is_active:
             return Response(
                 {
