@@ -31,6 +31,7 @@ class CustomUserAdmin(UserAdmin):
                 "is_active",
                 "is_staff",
                 "is_superuser",
+                "email_verified",
                 "groups",
                 "user_permissions",
             )

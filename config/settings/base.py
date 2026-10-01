@@ -28,7 +28,7 @@ INSTALLED_APPS = [
     "users",
     "authentication",
     "api",
-    "profiles",
+    "apps.profiles",
 ]
 
 AUTH_USER_MODEL = "users.User"

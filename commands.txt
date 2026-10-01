@@ -10,7 +10,7 @@ curl -X POST http://127.0.0.1:8000/api/token/ \
 curl -X POST http://127.0.0.1:8000/api/auth/register/ \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "john@example.com",
+    "email": "john1@example.com",
     "password": "testpassword123",
     "password_confirm": "testpassword123"
   }'

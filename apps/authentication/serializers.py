@@ -1,7 +1,10 @@
 from django.contrib.auth import authenticate, get_user_model
 from django.core import signing
+from django.db import transaction
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from apps.profiles.models import UserProfile
 
 from .tokens import verify_email_verification_token
 
@@ -37,6 +40,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         validated_data.pop("password_confirm")
 
@@ -47,6 +51,8 @@ class RegisterSerializer(serializers.ModelSerializer):
             is_active=True,
             email_verified=False,
         )
+
+        UserProfile.objects.create(user=user)
 
         return user
 
