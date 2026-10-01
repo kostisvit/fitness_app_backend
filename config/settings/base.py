@@ -4,10 +4,12 @@ import os
 import sys
 from pathlib import Path
 
+from decouple import config
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, os.path.join(BASE_DIR, "apps"))
 
-SECRET_KEY = "change-me"
+SECRET_KEY = config("SECRET_KEY")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -18,8 +20,10 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
 
     # Your apps
-    "",
+    "users",
 ]
+
+auth_user_model = "users.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
