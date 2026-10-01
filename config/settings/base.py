@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     # Apps
     "users",
     "authentication",
+    "api",
 ]
 
 AUTH_USER_MODEL = "users.User"
@@ -80,6 +81,13 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+DEFAULT_FROM_EMAIL = "noreply@example.com"
+
+FRONTEND_URL = "http://localhost:3000"
 
 # Rest Framework settings
 REST_FRAMEWORK = {

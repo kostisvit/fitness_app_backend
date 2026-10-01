@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import LoginSerializer, RegisterSerializer
+from .serializers import LoginSerializer, RegisterSerializer, VerifyEmailSerializer
+from .services import send_verification_email
 
 
 class RegisterView(APIView):
@@ -16,11 +17,13 @@ class RegisterView(APIView):
 
         user = serializer.save()
 
+        send_verification_email(user)
+
         return Response(
             {
                 "message": (
                     "Registration successful. "
-                    "Please verify your email."
+                    "Please check your email to verify your account."
                 ),
                 "user": {
                     "id": user.id,
@@ -73,4 +76,29 @@ class LogoutView(APIView):
         return Response(
             {"message": "Logged out successfully."},
             status=status.HTTP_205_RESET_CONTENT,
+        )
+
+
+class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = VerifyEmailSerializer(
+            data=request.data
+        )
+
+        serializer.is_valid(raise_exception=True)
+
+        user = serializer.user
+
+        user.email_verified = True
+        user.save(
+            update_fields=["email_verified"]
+        )
+
+        return Response(
+            {
+                "message": "Email verified successfully."
+            },
+            status=status.HTTP_200_OK,
         )

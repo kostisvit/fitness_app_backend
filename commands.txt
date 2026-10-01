@@ -2,6 +2,19 @@
 curl -X POST http://127.0.0.1:8000/api/token/ \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "test@example.com",
+    "email": "john@example.com",
     "password": "testpassword123"
   }'
+
+
+curl -X POST http://127.0.0.1:8000/api/auth/register/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john@example.com",
+    "password": "StrongPassword123!",
+    "password_confirm": "StrongPassword123!"
+  }'
+
+curl -X POST "http://127.0.0.1:8000/api/auth/verify-email/" \
+  -H "Content-Type: application/json" \
+  -d '{"token":"eyJ1c2VyX2lkIjoiZWE2MTQxMGEtY2NhMS00MDc3LWI3YzAtYTRlYmQyZDBmNzkyIiwiZW1haWwiOiJqb2huQGV4YW1wbGUuY29tIn0:1xCBLz:yjK21AQ__Bgk6GCsZPvhA16i8Ltefkm1oP7FN_xVdUQ"}'

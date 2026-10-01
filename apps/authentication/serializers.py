@@ -2,6 +2,8 @@ from django.contrib.auth import authenticate, get_user_model
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .tokens import verify_email_verification_token
+
 User = get_user_model()
 
 
@@ -90,3 +92,37 @@ class LoginSerializer(serializers.Serializer):
                 "role": user.role,
             },
         }
+
+
+class VerifyEmailSerializer(serializers.Serializer):
+    token = serializers.CharField()
+
+    def validate_token(self, value):
+        try:
+            data = verify_email_verification_token(value)
+        except signing.SignatureExpired:
+            raise serializers.ValidationError(
+                "Verification link has expired."
+            )
+        except signing.BadSignature:
+            raise serializers.ValidationError(
+                "Invalid verification link."
+            )
+
+        try:
+            user = User.objects.get(
+                id=data["user_id"],
+                email=data["email"],
+            )
+        except User.DoesNotExist:
+            raise serializers.ValidationError(
+                "Invalid verification link."
+            )
+
+        if user.email_verified:
+            raise serializers.ValidationError(
+                "Email is already verified."
+            )
+
+        self.user = user
+        return value
