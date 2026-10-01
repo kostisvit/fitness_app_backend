@@ -1,12 +1,23 @@
+from django.contrib.auth import get_user_model
+from django.core import signing
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import LoginSerializer, RegisterSerializer, VerifyEmailSerializer
-from .services import send_verification_email
+from .serializers import (
+    LoginSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    RegisterSerializer,
+    ResendVerificationSerializer,
+    VerifyEmailSerializer,
+)
+from .services import send_password_reset_email, send_verification_email
+from .tokens import verify_password_reset_token
 
+User = get_user_model()
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -114,3 +125,147 @@ class MeView(APIView):
             "role": request.user.role,
             "is_staff": request.user.is_staff,
         })
+
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(
+            data=request.data
+        )
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"]
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            pass
+        else:
+            if user.is_active:
+                send_password_reset_email(user)
+
+        return Response(
+            {
+                "message": (
+                    "If an account exists for this email, "
+                    "a password reset link has been sent."
+                )
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(
+            data=request.data
+        )
+        serializer.is_valid(raise_exception=True)
+
+        token = serializer.validated_data["token"]
+
+        try:
+            data = verify_password_reset_token(token)
+        except signing.SignatureExpired:
+            return Response(
+                {
+                    "detail": (
+                        "Password reset link has expired."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except signing.BadSignature:
+            return Response(
+                {
+                    "detail": (
+                        "Invalid password reset link."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            user = User.objects.get(
+                id=data["user_id"],
+                email=data["email"],
+            )
+        except User.DoesNotExist:
+            return Response(
+                {
+                    "detail": (
+                        "Invalid password reset link."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not user.is_active:
+            return Response(
+                {
+                    "detail": "This account is inactive."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(
+            serializer.validated_data["password"]
+        )
+        user.save(update_fields=["password"])
+
+        return Response(
+            {
+                "message": "Password reset successfully."
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class ResendVerificationView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ResendVerificationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"]
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {
+                    "message": (
+                        "If an account exists for this email, "
+                        "a verification email has been sent."
+                    )
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        if user.email_verified:
+            return Response(
+                {
+                    "message": (
+                        "If an account exists for this email, "
+                        "a verification email has been sent."
+                    )
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        send_verification_email(user)
+
+        return Response(
+            {
+                "message": (
+                    "If an account exists for this email, "
+                    "a verification email has been sent."
+                )
+            },
+            status=status.HTTP_200_OK,
+        )
