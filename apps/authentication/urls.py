@@ -38,7 +38,7 @@ urlpatterns = [
     VerifyEmailView.as_view(),
     name="verify-email",
 ),
-path("me/", MeView.as_view()),
+    path("me/", MeView.as_view(), name="me"),
  path(
         "resend-verification/",
         ResendVerificationView.as_view(),

@@ -15,12 +15,19 @@ from .serializers import (
     VerifyEmailSerializer,
 )
 from .services import send_password_reset_email, send_verification_email
+from .throttles import (
+    LoginRateThrottle,
+    PasswordResetConfirmRateThrottle,
+    PasswordResetRateThrottle,
+    RegisterRateThrottle,
+)
 from .tokens import verify_password_reset_token
 
 User = get_user_model()
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [RegisterRateThrottle]
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -47,6 +54,7 @@ class RegisterView(APIView):
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [LoginRateThrottle]
 
     def post(self, request):
         serializer = LoginSerializer(
@@ -64,6 +72,7 @@ class LoginView(APIView):
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
+
 
     def post(self, request):
         refresh_token = request.data.get("refresh")
@@ -124,11 +133,13 @@ class MeView(APIView):
             "email": request.user.email,
             "role": request.user.role,
             "is_staff": request.user.is_staff,
+            "email_verified": request.user.email_verified,
         })
 
 
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [PasswordResetRateThrottle]
 
     def post(self, request):
         serializer = PasswordResetRequestSerializer(
@@ -159,6 +170,7 @@ class PasswordResetRequestView(APIView):
 
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [PasswordResetConfirmRateThrottle]
 
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(

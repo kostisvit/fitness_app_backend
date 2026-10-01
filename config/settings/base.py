@@ -97,6 +97,13 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    "DEFAULT_THROTTLE_RATES": {
+        "auth_login": "5/minute",
+        "auth_register": "5/hour",
+        "auth_resend_verification": "3/hour",
+        "auth_password_reset": "3/hour",
+        "auth_password_reset_confirm": "5/hour",
+    },
 }
 
 

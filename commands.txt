@@ -22,7 +22,7 @@ curl -X POST "http://127.0.0.1:8000/api/auth/verify-email/" \
 
 curl -X POST "http://127.0.0.1:8000/api/auth/login/" \
   -H "Content-Type: application/json" \
-  -d "{\"email\":\"john@example.com\",\"password\":\"testpassword123\"}"
+  -d "{\"email\":\"john@example.com\",\"password\":\"NewPassword123\"}"
 
 
 curl -X GET "http://127.0.0.1:8000/api/auth/me/" \
