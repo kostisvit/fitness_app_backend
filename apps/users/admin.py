@@ -9,8 +9,6 @@ class CustomUserAdmin(UserAdmin):
     ordering = ("email",)
     list_display = (
         "email",
-        "first_name",
-        "last_name",
         "role",
         "email_verified",
         "is_staff",
