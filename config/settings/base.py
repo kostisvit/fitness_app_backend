@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "authentication",
     "api",
     "apps.profiles",
+    "apps.events",
 ]
 
 AUTH_USER_MODEL = "users.User"
