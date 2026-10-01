@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .views import LoginView, LogoutView, RegisterView, VerifyEmailView
+from .views import LoginView, LogoutView, MeView, RegisterView, VerifyEmailView
 
 urlpatterns = [
     path(
@@ -29,4 +29,5 @@ urlpatterns = [
     VerifyEmailView.as_view(),
     name="verify-email",
 ),
+path("me/", MeView.as_view()),
 ]
